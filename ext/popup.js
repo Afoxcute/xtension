@@ -250,8 +250,8 @@ document.addEventListener('DOMContentLoaded', function() {
   // Check wallet connection on load
   checkWalletConnection();
   
-  // Add development mode toggle (only visible in development)
-  const isDevelopment = process.env.NODE_ENV === 'development' || true; // Set to true for now
+  // Add development mode toggle (always visible for now)
+  const isDevelopment = true; // Hardcoded to true instead of using process.env.NODE_ENV
   
   if (isDevelopment) {
     // Create environment toggles
