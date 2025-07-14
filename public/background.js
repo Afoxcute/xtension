@@ -1,0 +1,106 @@
+// Background script for the extension
+chrome.runtime.onInstalled.addListener(function() {
+  console.log('Extension installed!');
+  
+  // Set a default badge text
+  chrome.action.setBadgeText({ text: 'NEW' });
+  chrome.action.setBadgeBackgroundColor({ color: '#9945FF' });
+  
+  // Clear the badge after 5 seconds
+  setTimeout(function() {
+    chrome.action.setBadgeText({ text: '' });
+  }, 5000);
+});
+
+// Listen for changes to wallet connection state
+chrome.storage.onChanged.addListener(function(changes, namespace) {
+  if (namespace === 'local' && changes.walletConnected) {
+    if (changes.walletConnected.newValue === true) {
+      // Wallet connected
+      chrome.action.setBadgeText({ text: 'SOL' });
+      chrome.action.setBadgeBackgroundColor({ color: '#14F195' });
+    } else {
+      // Wallet disconnected
+      chrome.action.setBadgeText({ text: '' });
+    }
+  }
+});
+
+// GitHub Pages URL for wallet connection (update this with your actual GitHub Pages URL)
+const GITHUB_PAGES_URL = 'https://hoepeyemi.github.io/my-nextjs-app/wallet-connect.html';
+
+// Local development URLs
+const LOCAL_URLS = [
+  'http://localhost:8000/wallet-connect.html',
+  'https://localhost:8443/wallet-connect.html'
+];
+
+// Handle messages from content scripts and other extension pages
+chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+  if (request.action === 'checkWalletConnection') {
+    // Check if wallet is connected
+    chrome.storage.local.get(['walletConnected', 'walletPublicKey'], function(result) {
+      sendResponse({
+        connected: result.walletConnected || false,
+        publicKey: result.walletPublicKey || null
+      });
+    });
+    return true; // Keep the message channel open for async response
+  } 
+  else if (request.action === 'walletConnected') {
+    // Wallet connected from the wallet-connect.html page
+    console.log('Wallet connected from external page:', request.publicKey);
+    
+    // Save connection info
+    chrome.storage.local.set({ 
+      walletConnected: true,
+      walletPublicKey: request.publicKey
+    });
+    
+    // Set badge
+    chrome.action.setBadgeText({ text: 'SOL' });
+    chrome.action.setBadgeBackgroundColor({ color: '#14F195' });
+    
+    // Send response
+    sendResponse({ status: 'success' });
+    return true;
+  }
+  else if (request.action === 'openWalletConnect') {
+    // Determine which URL to use
+    // In production, use the GitHub Pages URL
+    // For development, you can set a flag in storage to use local URLs
+    
+    chrome.storage.local.get(['useLocalDevelopment'], function(result) {
+      let url = GITHUB_PAGES_URL; // Default to GitHub Pages
+      
+      if (result.useLocalDevelopment) {
+        // Use local development URL if the flag is set
+        url = LOCAL_URLS[0]; // Use the first local URL
+        console.log('Using local development URL:', url);
+      } else {
+        console.log('Using GitHub Pages URL:', url);
+      }
+      
+      // Open wallet connect page in a new tab
+      chrome.tabs.create({ url: url }, function(tab) {
+        console.log('Opened wallet connect page in tab:', tab.id);
+      });
+    });
+    
+    sendResponse({ status: 'opening' });
+    return true;
+  }
+  else if (request.action === 'toggleDevelopmentMode') {
+    // Toggle between GitHub Pages and local development
+    chrome.storage.local.get(['useLocalDevelopment'], function(result) {
+      const newValue = !result.useLocalDevelopment;
+      chrome.storage.local.set({ useLocalDevelopment: newValue });
+      sendResponse({ 
+        status: 'success', 
+        useLocalDevelopment: newValue,
+        message: newValue ? 'Using local development URLs' : 'Using GitHub Pages URL'
+      });
+    });
+    return true;
+  }
+}); 
