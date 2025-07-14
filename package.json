@@ -7,10 +7,9 @@
     "start": "node server.js",
     "dev": "nodemon server.js",
     "build": "node deploy-to-gh-pages.js",
-    "build:extension": "node build-extension.js && node fix-browser-compatibility.js && node fix-imports.js",
-    "build:extension:prod": "node build-extension-production.js && node fix-browser-compatibility.js && node fix-imports.js",
+    "build:extension": "node build-extension.js && node fix-browser-compatibility.js",
+    "build:extension:prod": "node build-extension-production.js && node fix-browser-compatibility.js",
     "fix:compatibility": "node fix-browser-compatibility.js",
-    "fix:imports": "node fix-imports.js",
     "test:railway": "node test-railway-deployment.js",
     "postinstall": "npm run build"
   },

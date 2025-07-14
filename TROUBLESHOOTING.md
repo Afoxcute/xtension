@@ -119,32 +119,6 @@ If your wallet address isn't displaying after connecting:
 3. If not, try reconnecting your wallet
 4. If the issue persists, check the browser console for errors
 
-### Wallet Address Not Stored Properly
-
-If the wallet address is not being stored or retrieved properly:
-
-1. Check the browser console for storage-related errors
-2. Verify that the extension has proper storage permissions in the manifest.json
-3. Make sure you're using consistent key names for storage:
-   - The extension uses both `walletPublicKey` and `solanaAddress` for compatibility
-   - The updated code handles both naming conventions
-4. Try clearing the extension storage and reconnecting:
-   - Go to chrome://extensions
-   - Find your extension and click "Details"
-   - Click "Clear Data" and then reconnect your wallet
-
-### Points Not Displaying
-
-If your points are not displaying:
-
-1. Check if points are being set correctly in the background script
-2. Verify that the points are stored in Chrome storage under the `userPoints` key
-3. Make sure the UI is updated to display points when available
-4. Try setting points manually for testing:
-   ```javascript
-   chrome.storage.local.set({ userPoints: 15 });
-   ```
-
 ## Environment Switching Issues
 
 ### Can't Switch Between Environments
