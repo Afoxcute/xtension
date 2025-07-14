@@ -27,7 +27,7 @@ chrome.storage.onChanged.addListener(function(changes, namespace) {
 });
 
 // GitHub Pages URL for wallet connection (update this with your actual GitHub Pages URL)
-const GITHUB_PAGES_URL = 'https://hoepeyemi.github.io/my-nextjs-app/wallet-connect.html';
+const GITHUB_PAGES_URL = 'https://hoepeyemi.github.io/xtension/wallet-connect.html';
 
 // Local development URLs
 const LOCAL_URLS = [
