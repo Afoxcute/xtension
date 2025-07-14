@@ -4,6 +4,7 @@ const path = require('path');
 
 // Define directories
 const extensionBuildDir = path.join(__dirname, 'extension-build');
+const publicDir = path.join(__dirname, 'public');
 const ghPagesDir = path.join(__dirname, 'docs'); // GitHub Pages serves from /docs or /root
 
 // Create GitHub Pages directory if it doesn't exist
@@ -21,14 +22,20 @@ const filesToCopy = [
 // Copy the necessary files to the GitHub Pages directory
 console.log('Copying files to GitHub Pages directory...');
 filesToCopy.forEach(file => {
-  const sourcePath = path.join(extensionBuildDir, file);
+  // First check if the file exists in the public directory (for latest version)
+  let sourcePath = path.join(publicDir, file);
+  if (!fs.existsSync(sourcePath)) {
+    // If not in public, try extension-build
+    sourcePath = path.join(extensionBuildDir, file);
+  }
+  
   const destPath = path.join(ghPagesDir, file);
   
   if (fs.existsSync(sourcePath)) {
     fs.copyFileSync(sourcePath, destPath);
     console.log(`Copied ${file} to ${ghPagesDir}`);
   } else {
-    console.error(`Error: ${file} not found in ${extensionBuildDir}`);
+    console.error(`Error: ${file} not found in ${publicDir} or ${extensionBuildDir}`);
   }
 });
 

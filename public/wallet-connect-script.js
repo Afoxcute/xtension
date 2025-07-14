@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Function to connect wallet and send message back to extension
   async function connectWallet(provider) {
     try {
-      // Connect to wallet
+      // Connect to wallet using Phantom's recommended approach
       const response = await provider.connect();
       const publicKey = response.publicKey.toString();
       
@@ -39,37 +39,24 @@ document.addEventListener('DOMContentLoaded', function() {
       walletAddressDisplay.textContent = publicKey;
       walletAddressDisplay.style.display = 'block';
       
-      // Send message to extension
-      // When hosted on GitHub Pages, we need to use a different approach
-      // since chrome.runtime is only available in extension context
-      if (typeof chrome !== 'undefined' && chrome.runtime) {
-        // Running in extension context
-        chrome.runtime.sendMessage({
-          action: 'walletConnected',
-          publicKey: publicKey
-        }, function(response) {
-          console.log('Message sent to extension:', response);
-          
-          // Close this tab after a short delay
-          setTimeout(() => {
-            window.close();
-          }, 2000);
-        });
-      } else {
-        // Running on GitHub Pages
-        // Store the public key in localStorage
-        localStorage.setItem('solanaWalletPublicKey', publicKey);
-        
-        // Show a message to the user
-        showStatus('Connected! You can close this tab and return to the extension.');
-        
-        // Add a button to close the tab
-        const closeButton = document.createElement('button');
-        closeButton.textContent = 'Close This Tab';
-        closeButton.className = 'close-button';
-        closeButton.addEventListener('click', () => window.close());
-        document.querySelector('.container').appendChild(closeButton);
-      }
+      // Store the public key in localStorage for the extension to retrieve
+      localStorage.setItem('solanaWalletPublicKey', publicKey);
+      
+      // Show a message to the user
+      showStatus('Connected! You can close this tab and return to the extension.');
+      
+      // Add a button to close the tab
+      const closeButton = document.createElement('button');
+      closeButton.textContent = 'Close This Tab';
+      closeButton.style.padding = '10px 20px';
+      closeButton.style.marginTop = '20px';
+      closeButton.style.backgroundColor = '#0070f3';
+      closeButton.style.color = 'white';
+      closeButton.style.border = 'none';
+      closeButton.style.borderRadius = '4px';
+      closeButton.style.cursor = 'pointer';
+      closeButton.addEventListener('click', () => window.close());
+      document.querySelector('.container').appendChild(closeButton);
       
       return publicKey;
     } catch (error) {
@@ -82,8 +69,7 @@ document.addEventListener('DOMContentLoaded', function() {
   // Connect Phantom button click handler
   connectPhantomBtn.addEventListener('click', async function() {
     // Preferred way to get Phantom provider
-    const provider = window.phantom?.solana?.isPhantom ? window.phantom.solana : 
-                    (window.solana?.isPhantom ? window.solana : null);
+    const provider = window.phantom?.solana;
     
     if (provider) {
       connectPhantomBtn.disabled = true;
@@ -117,5 +103,22 @@ document.addEventListener('DOMContentLoaded', function() {
   if (!isSecureContext && !isLocalhost) {
     showStatus('Warning: Phantom requires HTTPS or localhost for wallet connections. Wallet detection may fail.', true);
     document.querySelector('.wallet-buttons').style.opacity = '0.5';
+  }
+  
+  // Set up event listeners for wallet account changes
+  if (phantomAvailable) {
+    window.phantom.solana.on('accountChanged', (publicKey) => {
+      if (publicKey) {
+        console.log(`Switched to account ${publicKey.toBase58()}`);
+        // Update the display with the new public key
+        walletAddressDisplay.textContent = publicKey.toBase58();
+        walletAddressDisplay.style.display = 'block';
+        // Update localStorage
+        localStorage.setItem('solanaWalletPublicKey', publicKey.toBase58());
+      } else {
+        // Handle case where user switched to an account that hasn't connected to this app
+        console.log('Switched to an account that is not connected to this app');
+      }
+    });
   }
 }); 
