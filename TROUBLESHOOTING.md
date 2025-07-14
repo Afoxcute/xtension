@@ -24,6 +24,40 @@ If you have a wallet installed but still can't connect:
 4. Try restarting your browser
 5. Check if your wallet works on other Solana dApps (like [Solana Explorer](https://explorer.solana.com/))
 
+## JavaScript Errors
+
+### "Uncaught ReferenceError: process is not defined"
+
+If you see this error in the console:
+
+1. This happens because the extension code is trying to access the Node.js `process` object, which isn't available in browser environments
+2. To fix it:
+   - Option 1: Run the automated fix script:
+     ```bash
+     npm run fix:compatibility
+     # or
+     yarn fix:compatibility
+     ```
+     Then reload the extension in your browser
+   
+   - Option 2: Fix it manually:
+     - Open `extension-build/popup.js`
+     - Find the line containing `process.env.NODE_ENV`
+     - Replace it with `const isDevelopment = true;`
+     - Reload the extension
+
+3. To prevent this issue when rebuilding:
+   - The build scripts now automatically run the compatibility fixes
+   - You can also run the fix script separately anytime
+
+### Other JavaScript Errors
+
+If you encounter other JavaScript errors:
+
+1. Check the browser console (F12) for specific error messages
+2. Make sure all required files are included in the extension build
+3. Try rebuilding the extension with `npm run build:extension` or `npm run build:extension:prod`
+
 ## HTTPS Connection Issues
 
 ### Wallet Connection Page Not Loading
@@ -84,6 +118,32 @@ If your wallet address isn't displaying after connecting:
 2. Check if the wallet address is stored correctly in Chrome storage
 3. If not, try reconnecting your wallet
 4. If the issue persists, check the browser console for errors
+
+### Wallet Address Not Stored Properly
+
+If the wallet address is not being stored or retrieved properly:
+
+1. Check the browser console for storage-related errors
+2. Verify that the extension has proper storage permissions in the manifest.json
+3. Make sure you're using consistent key names for storage:
+   - The extension uses both `walletPublicKey` and `solanaAddress` for compatibility
+   - The updated code handles both naming conventions
+4. Try clearing the extension storage and reconnecting:
+   - Go to chrome://extensions
+   - Find your extension and click "Details"
+   - Click "Clear Data" and then reconnect your wallet
+
+### Points Not Displaying
+
+If your points are not displaying:
+
+1. Check if points are being set correctly in the background script
+2. Verify that the points are stored in Chrome storage under the `userPoints` key
+3. Make sure the UI is updated to display points when available
+4. Try setting points manually for testing:
+   ```javascript
+   chrome.storage.local.set({ userPoints: 15 });
+   ```
 
 ## Environment Switching Issues
 

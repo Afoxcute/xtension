@@ -68,94 +68,64 @@ document.addEventListener('DOMContentLoaded', function() {
   // Create wallet adapter instance
   const walletAdapter = new SolanaWalletAdapter();
   
-  // Function to update UI based on connection status
-  function updateUI(isConnected, publicKey = null, points = 0) {
-    if (isConnected && publicKey) {
-      // Format the wallet address for display
-      const formattedAddress = formatWalletAddress(publicKey);
-      
-      // Update wallet status
-      walletStatus.textContent = 'Connected';
-      walletStatus.classList.add('connected');
-      
-      // Update wallet address
-      walletAddress.textContent = formattedAddress;
-      walletAddress.style.display = 'block';
-      
-      // Show points if available
-      if (points > 0) {
-        const pointsElement = document.getElementById('wallet-points');
-        if (pointsElement) {
-          pointsElement.textContent = `${points} points`;
-          pointsElement.style.display = 'block';
-        } else {
-          // Create points element if it doesn't exist
-          const pointsElement = document.createElement('div');
-          pointsElement.id = 'wallet-points';
-          pointsElement.textContent = `${points} points`;
-          pointsElement.style.color = '#14F195';
-          pointsElement.style.marginTop = '5px';
-          pointsElement.style.fontWeight = 'bold';
-          walletAddress.parentNode.insertBefore(pointsElement, walletAddress.nextSibling);
-        }
-      }
-      
-      // Enable buttons
-      connectWalletButton.textContent = 'Disconnect';
-      actionButton.disabled = false;
-      signMessageButton.disabled = false;
-      
-      // Store the public key in the adapter
-      walletAdapter.publicKey = publicKey;
-      walletAdapter.connected = true;
-    } else {
-      // Update wallet status
-      walletStatus.textContent = 'Not Connected';
-      walletStatus.classList.remove('connected');
-      
-      // Hide wallet address
-      walletAddress.textContent = '';
-      walletAddress.style.display = 'none';
-      
-      // Hide points
-      const pointsElement = document.getElementById('wallet-points');
-      if (pointsElement) {
-        pointsElement.style.display = 'none';
-      }
-      
-      // Update buttons
-      connectWalletButton.textContent = 'Connect Wallet';
-      actionButton.disabled = true;
-      signMessageButton.disabled = true;
-      
-      // Clear the public key from the adapter
-      walletAdapter.publicKey = null;
-      walletAdapter.connected = false;
-    }
-  }
-
-  // Function to check wallet connection
+  // Check if wallet is already connected (from previous session)
   function checkWalletConnection() {
-    chrome.runtime.sendMessage({ action: 'checkWalletConnection' }, function(response) {
-      if (response && response.connected) {
-        updateUI(true, response.publicKey, response.points);
-      } else {
-        updateUI(false);
+    // Ensure error div exists
+    if (!document.getElementById('error-message')) {
+      const errorDiv = document.createElement('div');
+      errorDiv.id = 'error-message';
+      errorDiv.className = 'error-message';
+      document.querySelector('.wallet-section').appendChild(errorDiv);
+    }
+    
+    // We'll rely on the external wallet-detector.js script to check for wallet availability
+    // This function now just ensures the error div exists
+    console.log('Checking for stored wallet connection');
+    
+    // Check if we have a stored wallet connection
+    chrome.storage.local.get(['walletConnected', 'walletPublicKey'], function(result) {
+      if (result.walletConnected && result.walletPublicKey) {
+        console.log('Found stored wallet connection:', result.walletPublicKey);
+        updateUI(true, result.walletPublicKey);
       }
     });
   }
-
-  // Helper function to format wallet address
-  function formatWalletAddress(address) {
-    if (!address) return '';
-    
-    // If it's already shortened (like "abc...xyz"), return as is
-    if (address.includes('...')) return address;
-    
-    // Otherwise, format it
-    const start = address.substring(0, 4);
-    const end = address.substring(address.length - 4);
-    return `${start}...${end}`;
+  
+  // Update UI based on connection state
+  function updateUI(isConnected, publicKey = null) {
+    if (isConnected && publicKey) {
+      // Connected state
+      connectionStatus.textContent = 'Connected';
+      walletStatus.classList.add('connected');
+      
+      // Show wallet address with truncation
+      const truncatedAddress = publicKey.slice(0, 4) + '...' + publicKey.slice(-4);
+      walletAddress.textContent = truncatedAddress;
+      walletAddress.title = publicKey; // Full address on hover
+      
+      // Make wallet address visible
+      walletAddress.style.display = 'block';
+      
+      // Update buttons
+      connectWalletButton.style.display = 'none';
+      disconnectWalletButton.style.display = 'block';
+      actionButton.disabled = false;
+      signMessageButton.style.display = 'block';
+      
+      console.log('UI updated for connected wallet:', publicKey);
+    } else {
+      // Disconnected state
+      connectionStatus.textContent = 'Not connected';
+      walletStatus.classList.remove('connected');
+      walletAddress.textContent = '';
+      walletAddress.style.display = 'none';
+      
+      // Update buttons
+      connectWalletButton.style.display = 'block';
+      disconnectWalletButton.style.display = 'none';
+      actionButton.disabled = true;
+      signMessageButton.style.display = 'none';
+    }
   }
   
   // Connect wallet button click handler
@@ -257,18 +227,15 @@ document.addEventListener('DOMContentLoaded', function() {
   });
   
   // Check for stored wallet connection
-  chrome.storage.local.get(['walletConnected', 'walletPublicKey', 'solanaAddress', 'userPoints'], function(result) {
-    const walletAddress = result.walletPublicKey || result.solanaAddress;
-    const points = result.userPoints || 0;
-    
-    if (result.walletConnected && walletAddress) {
+  chrome.storage.local.get(['walletConnected', 'walletPublicKey'], function(result) {
+    if (result.walletConnected && result.walletPublicKey) {
       // Update UI with stored connection
-      updateUI(true, walletAddress, points);
+      updateUI(true, result.walletPublicKey);
       
       // Try to reconnect if we have stored connection
       walletAdapter.connect()
         .then(({ publicKey }) => {
-          updateUI(true, publicKey, points);
+          updateUI(true, publicKey);
         })
         .catch((error) => {
           console.log('Could not reconnect to wallet, but keeping stored connection:', error);
@@ -276,15 +243,15 @@ document.addEventListener('DOMContentLoaded', function() {
           // This allows the user to see their address even if the wallet isn't currently available
         });
     } else {
-      updateUI(false, null, points);
+      updateUI(false);
     }
   });
   
   // Check wallet connection on load
   checkWalletConnection();
   
-  // Add development mode toggle (always visible for now)
-  const isDevelopment = true; // Hardcoded to true instead of using process.env.NODE_ENV
+  // Add development mode toggle (only visible in development)
+  const isDevelopment = process.env.NODE_ENV === 'development' || true; // Set to true for now
   
   if (isDevelopment) {
     // Create environment toggles

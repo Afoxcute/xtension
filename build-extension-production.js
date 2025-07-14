@@ -10,7 +10,7 @@ if (!fs.existsSync(buildDir)) {
 
 // Production URL for Railway deployment
 // Replace this with your actual Railway URL after deployment
-const PRODUCTION_URL = 'https://solana-wallet-extension.up.railway.app/wallet-connect.html';
+const PRODUCTION_URL = 'https://web-production-a2ab.up.railway.app/wallet-connect.html';
 
 // Copy all files from public to build directory
 function copyDir(src, dest) {

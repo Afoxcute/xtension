@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Connect Solana Wallet</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background-color: #f5f5f5;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      margin: 0;
+      padding: 20px;
+      box-sizing: border-box;
+    }
+    .container {
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+      padding: 24px;
+      max-width: 500px;
+      width: 100%;
+      text-align: center;
+    }
+    h1 {
+      color: #333;
+      margin-bottom: 24px;
+    }
+    .wallet-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin: 24px 0;
+    }
+    button {
+      padding: 12px 20px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: 500;
+      font-size: 16px;
+      transition: background-color 0.2s;
+    }
+    .phantom-button {
+      background-color: #534BB1;
+      color: white;
+    }
+    .phantom-button:hover {
+      background-color: #423996;
+    }
+    .solflare-button {
+      background-color: #FC812B;
+      color: white;
+    }
+    .solflare-button:hover {
+      background-color: #E36F1E;
+    }
+    .status {
+      margin-top: 20px;
+      padding: 10px;
+      border-radius: 4px;
+    }
+    .status.success {
+      background-color: #e6f7e6;
+      color: #2e7d32;
+    }
+    .status.error {
+      background-color: #ffebee;
+      color: #c62828;
+    }
+    .address-display {
+      word-break: break-all;
+      background-color: #f5f5f5;
+      padding: 10px;
+      border-radius: 4px;
+      margin-top: 10px;
+      font-family: monospace;
+      display: none;
+    }
+    .close-notice {
+      margin-top: 20px;
+      font-size: 14px;
+      color: #666;
+    }
+    .secure-notice {
+      margin-top: 10px;
+      font-size: 12px;
+      color: #888;
+      font-style: italic;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Connect Solana Wallet</h1>
+    <p>Click one of the buttons below to connect your Solana wallet:</p>
+    
+    <div class="wallet-buttons">
+      <button id="connectPhantom" class="phantom-button">Connect Phantom Wallet</button>
+      <button id="connectSolflare" class="solflare-button">Connect Solflare Wallet</button>
+    </div>
+    
+    <div id="statusMessage" class="status" style="display: none;"></div>
+    <div id="walletAddress" class="address-display"></div>
+    
+    <p class="close-notice">This tab will automatically close after successful connection.</p>
+    <p class="secure-notice">Note: Phantom requires HTTPS or localhost for wallet connections.</p>
+  </div>
+
+  <script src="wallet-connect-script.js"></script>
+</body>
+</html> 

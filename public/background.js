@@ -1,4 +1,50 @@
 // Background script for the extension
+import { LocalStorage } from './utils/localStorage.js';
+
+// Since import statements don't work directly in extension scripts, we'll need to include the code inline
+// LocalStorage implementation
+const LocalStorage = {
+  setSolanaAddress(address) {
+    if (!address) return;
+    chrome.storage.local.set({ 
+      walletConnected: true,
+      walletPublicKey: address,
+      solanaAddress: address // Adding for compatibility with both naming conventions
+    });
+    console.log('Solana address stored:', address);
+  },
+  
+  setPoint(points) {
+    if (typeof points !== 'number') return;
+    chrome.storage.local.set({ userPoints: points });
+    console.log('User points set:', points);
+  },
+  
+  setToken(token) {
+    if (!token) return;
+    chrome.storage.local.set({ authToken: token });
+    console.log('Auth token stored');
+  }
+};
+
+// Event emitter for internal communication
+const backgroundEventBroadcast = {
+  listeners: {},
+  
+  on(event, callback) {
+    if (!this.listeners[event]) {
+      this.listeners[event] = [];
+    }
+    this.listeners[event].push(callback);
+  },
+  
+  emit(event, ...args) {
+    if (this.listeners[event]) {
+      this.listeners[event].forEach(callback => callback(...args));
+    }
+  }
+};
+
 chrome.runtime.onInstalled.addListener(function() {
   console.log('Extension installed!');
   
@@ -14,14 +60,29 @@ chrome.runtime.onInstalled.addListener(function() {
 
 // Listen for changes to wallet connection state
 chrome.storage.onChanged.addListener(function(changes, namespace) {
-  if (namespace === 'local' && changes.walletConnected) {
-    if (changes.walletConnected.newValue === true) {
-      // Wallet connected
-      chrome.action.setBadgeText({ text: 'SOL' });
-      chrome.action.setBadgeBackgroundColor({ color: '#14F195' });
-    } else {
-      // Wallet disconnected
-      chrome.action.setBadgeText({ text: '' });
+  if (namespace === 'local') {
+    if (changes.walletConnected) {
+      if (changes.walletConnected.newValue === true) {
+        // Wallet connected
+        chrome.action.setBadgeText({ text: 'SOL' });
+        chrome.action.setBadgeBackgroundColor({ color: '#14F195' });
+      } else {
+        // Wallet disconnected
+        chrome.action.setBadgeText({ text: '' });
+      }
+    }
+    
+    // If points changed, update badge
+    if (changes.userPoints) {
+      const points = changes.userPoints.newValue;
+      if (points && typeof points === 'number') {
+        // Show points in badge if wallet is connected
+        chrome.storage.local.get(['walletConnected'], function(result) {
+          if (result.walletConnected) {
+            chrome.action.setBadgeText({ text: points.toString() });
+          }
+        });
+      }
     }
   }
 });
@@ -42,11 +103,11 @@ const LOCAL_URLS = [
 function handleWalletConnection(publicKey, sendResponse) {
   console.log('Wallet connected with public key:', publicKey);
   
-  // Save connection info
-  chrome.storage.local.set({ 
-    walletConnected: true,
-    walletPublicKey: publicKey
-  });
+  // Save connection info using LocalStorage utility
+  LocalStorage.setSolanaAddress(publicKey);
+  
+  // Set default points
+  LocalStorage.setPoint(15);
   
   // Set badge
   chrome.action.setBadgeText({ text: 'SOL' });
@@ -56,16 +117,33 @@ function handleWalletConnection(publicKey, sendResponse) {
   if (sendResponse) {
     sendResponse({ status: 'success' });
   }
+  
+  // Show notification
+  chrome.notifications && chrome.notifications.create({
+    type: 'basic',
+    iconUrl: 'icons/icon128.svg',
+    title: 'Wallet Connected',
+    message: 'Your wallet is now connected! Click the extension icon to see your points.'
+  });
 }
 
 // Handle messages from content scripts and other extension pages
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
+  console.log('Background received message:', request);
+  
+  // Handle solanaAddress in request
+  if (request.solanaAddress) {
+    console.log('Solana Address received:', request.solanaAddress);
+    LocalStorage.setSolanaAddress(request.solanaAddress);
+  }
+  
   if (request.action === 'checkWalletConnection') {
     // Check if wallet is connected
-    chrome.storage.local.get(['walletConnected', 'walletPublicKey'], function(result) {
+    chrome.storage.local.get(['walletConnected', 'walletPublicKey', 'solanaAddress', 'userPoints'], function(result) {
       sendResponse({
         connected: result.walletConnected || false,
-        publicKey: result.walletPublicKey || null
+        publicKey: result.walletPublicKey || result.solanaAddress || null,
+        points: result.userPoints || 0
       });
     });
     return true; // Keep the message channel open for async response
@@ -159,4 +237,131 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     });
     return true;
   }
-}); 
+  // Handle additional actions from the guide
+  else if (request.action === 'openQR') {
+    // Create popup window for QR code
+    createPopupWindow(
+      '/amazon_checkout',
+      336,
+      620,
+      {
+        senderInfo: JSON.stringify(sender),
+        signInfo: JSON.stringify(request.params)
+      }
+    );
+    return true;
+  }
+  else if (request.action === 'applyGiftCard') {
+    LocalStorage.setPoint(18);
+    chrome.tabs.sendMessage(
+      request.senderTabId,
+      {
+        requestOrigin: request.senderOrigin,
+        action: 'applyGiftCard',
+        data: request.data,
+      },
+      function (response) {
+        if (response && response.action === 'confirmApply') {
+          sendResponse({
+            success: true,
+          });
+        }
+      }
+    );
+    return true;
+  }
+  else if (request.action === 'placeOrder') {
+    chrome.tabs.sendMessage(
+      request.senderTabId,
+      {
+        action: 'placeOrder',
+      },
+      function (response) {
+        if (response && response.action === 'confirmPlaceOrder') {
+          sendResponse({
+            success: true,
+          });
+        }
+      }
+    );
+    return true;
+  }
+  else if (request.action === 'confirmApply') {
+    backgroundEventBroadcast.emit('done_apply');
+    return true;
+  }
+});
+
+// Listen for external messages
+chrome.runtime.onMessageExternal.addListener((request, sender, sendResponse) => {
+  console.log("External request received:", request);
+  
+  if (request.action === "login") {
+    LocalStorage.setToken(request.token);
+    LocalStorage.setSolanaAddress(request.address);
+    LocalStorage.setPoint(15);
+    
+    // Create popup window
+    createPopupWindow(
+      '/done',
+      336,
+      316,
+      {
+        senderInfo: JSON.stringify(sender),
+        signInfo: JSON.stringify(request.params)
+      }
+    );
+  }
+  else if (request.action === 'wallet_connected') {
+    // Store the wallet address
+    LocalStorage.setSolanaAddress(request.address);
+    
+    // Show notification
+    chrome.notifications && chrome.notifications.create({
+      type: 'basic',
+      iconUrl: 'icons/icon128.svg',
+      title: 'Wallet Connected',
+      message: 'Your wallet is now connected! Click the extension icon to see your points.'
+    });
+    
+    sendResponse && sendResponse({ success: true });
+  }
+  
+  return true; // Keep the message channel open for async response
+});
+
+// Helper function for creating popup windows
+function createPopupWindow(path, width, height, params = {}) {
+  const urlParams = new URLSearchParams();
+  
+  // Add params to URL if provided
+  if (params) {
+    Object.keys(params).forEach(key => {
+      urlParams.append(key, params[key]);
+    });
+  }
+  
+  const url = chrome.runtime.getURL(path) + (urlParams.toString() ? `?${urlParams.toString()}` : '');
+  
+  // Calculate position for center of screen
+  const screenWidth = window.screen.availWidth;
+  const screenHeight = window.screen.availHeight;
+  const left = Math.round((screenWidth - width) / 2);
+  const top = Math.round((screenHeight - height) / 2);
+  
+  chrome.windows.create({
+    url: url,
+    type: 'popup',
+    width: width,
+    height: height,
+    left: left,
+    top: top,
+    focused: true
+  }, (window) => {
+    if (chrome.runtime.lastError) {
+      console.error('Error creating popup:', chrome.runtime.lastError);
+    } else {
+      console.log('Popup window created:', window);
+    }
+  });
+} 

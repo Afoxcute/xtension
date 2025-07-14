@@ -64,6 +64,13 @@ npm run build:extension:prod
 yarn build:extension:prod
 ```
 
+If you encounter browser compatibility issues (like "process is not defined"), you can run:
+```bash
+npm run fix:compatibility
+# or
+yarn fix:compatibility
+```
+
 ### 3. Load the extension in your browser
 
 #### Chrome / Edge / Brave:
