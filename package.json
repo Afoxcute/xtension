@@ -7,7 +7,10 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "build-extension": "node build-extension.js"
+    "build-extension": "node build-extension.js",
+    "build-ts": "webpack --config webpack.config.js",
+    "watch-ts": "webpack --config webpack.config.js --watch",
+    "deploy-gh-pages": "node deploy-to-gh-pages.js"
   },
   "dependencies": {
     "@solana/wallet-adapter-base": "^0.9.27",
@@ -22,13 +25,18 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4",
+    "@types/chrome": "^0.0.260",
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "copy-webpack-plugin": "^12.0.2",
     "eslint": "^9",
     "eslint-config-next": "15.3.5",
     "tailwindcss": "^4",
-    "typescript": "^5"
+    "ts-loader": "^9.5.1",
+    "typescript": "^5",
+    "webpack": "^5.91.0",
+    "webpack-cli": "^5.1.4"
   },
   "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
 }
