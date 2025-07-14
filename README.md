@@ -1,174 +1,201 @@
-# My NextJS App with Browser Extension and Solana Wallet Support
+# Solana Wallet Browser Extension
 
-This project is a Next.js application that has been converted into a browser extension with Solana wallet integration.
+A browser extension that allows users to connect their Solana wallets and interact with Solana dApps.
+
+## Features
+
+- Connect to Solana wallets (Phantom, Solflare)
+- Display wallet address in the extension UI
+- Sign messages with the connected wallet
+- Multiple deployment options:
+  - Railway (production)
+  - GitHub Pages (alternative)
+  - Local development
 
 ## Project Structure
 
-- `src/`: Next.js application source code
-- `public/`: Static assets and browser extension files
-- `extension-build/`: The built browser extension ready for loading into browsers
-
-## Development
-
-### Next.js App
-
-To run the Next.js application:
-
-```bash
-npm run dev
+```
+.
+├── public/                 # Extension source files
+│   ├── background.js       # Background script
+│   ├── popup.js            # Popup UI script
+│   ├── content.js          # Content script
+│   ├── manifest.json       # Extension manifest
+│   └── ...                 # Other extension files
+├── docs/                   # GitHub Pages files
+│   ├── wallet-connect.html # Wallet connection page
+│   └── ...                 # Other GitHub Pages files
+├── extension-build/        # Built extension files
+├── server.js              # Express server for Railway deployment
+├── build-extension.js     # Script to build extension for local testing
+├── build-extension-production.js # Script to build extension for production
+└── deploy-to-gh-pages.js  # Script to deploy to GitHub Pages
 ```
 
-To build the Next.js application:
+## Prerequisites
+
+- Node.js (v14 or higher)
+- npm or yarn
+- A Chromium-based browser (Chrome, Edge, Brave) or Firefox
+
+## Setup & Development
+
+### 1. Install dependencies
 
 ```bash
-npm run build
+npm install
+# or
+yarn install
 ```
 
-### Browser Extension
+### 2. Build the extension
 
-The browser extension files are located in the `public/` directory:
-
-- `manifest.json`: Extension manifest file
-- `index.html`: Popup HTML
-- `popup.css`: Popup styles
-- `popup.js`: Popup functionality
-- `content.js`: Content script that runs on web pages
-- `background.js`: Background script for extension functionality
-- `solana-wallet.js`: Solana wallet adapter implementation
-- `icons/`: Extension icons
-
-To build the browser extension:
-
-1. Make any changes to the extension files in the `public/` directory
-2. Run the following command to copy the files to the `extension-build/` directory:
-
+For local development:
 ```bash
-# On Windows PowerShell
-mkdir -Force extension-build
-mkdir -Force extension-build\icons
-Copy-Item -Path "public\manifest.json" -Destination "extension-build\"
-Copy-Item -Path "public\index.html" -Destination "extension-build\"
-Copy-Item -Path "public\popup.css" -Destination "extension-build\"
-Copy-Item -Path "public\popup.js" -Destination "extension-build\"
-Copy-Item -Path "public\content.js" -Destination "extension-build\"
-Copy-Item -Path "public\background.js" -Destination "extension-build\"
-Copy-Item -Path "public\icons\*.svg" -Destination "extension-build\icons\"
-Copy-Item -Path "public\*.svg" -Destination "extension-build\"
+npm run build:extension
+# or
+yarn build:extension
 ```
 
-## Installation Instructions
+For production:
+```bash
+npm run build:extension:prod
+# or
+yarn build:extension:prod
+```
 
-### Chrome / Edge / Brave / Opera
+### 3. Load the extension in your browser
 
-1. Open your browser and navigate to the extensions page:
-   - Chrome: `chrome://extensions/`
-   - Edge: `edge://extensions/`
-   - Brave: `brave://extensions/`
-   - Opera: `opera://extensions/`
-
-2. Enable "Developer mode" (usually a toggle in the top right)
-
+#### Chrome / Edge / Brave:
+1. Open your browser and navigate to `chrome://extensions/`
+2. Enable "Developer mode" (toggle in the top right)
 3. Click "Load unpacked" and select the `extension-build` folder
 
-### Firefox
-
+#### Firefox:
 1. Open Firefox and navigate to `about:debugging#/runtime/this-firefox`
-
 2. Click "Load Temporary Add-on..." and select any file in the `extension-build` folder
+
+## Deployment Options
+
+The extension requires a secure (HTTPS) endpoint to connect to Solana wallets. You have three options:
+
+### Option 1: Railway (Recommended for Production)
+
+1. **Create a Railway account** at [railway.app](https://railway.app/)
+
+2. **Deploy to Railway**:
+   - Fork/clone this repository
+   - Create a new project on Railway
+   - Select "Deploy from GitHub repo"
+   - Select your forked/cloned repository
+
+3. **Update the extension**:
+   - After deployment, Railway will provide you with a URL
+   - Update the `PRODUCTION_URL` constant in `build-extension-production.js`:
+     ```javascript
+     const PRODUCTION_URL = 'https://your-railway-app-url.up.railway.app/wallet-connect.html';
+     ```
+   - Build the extension for production:
+     ```bash
+     npm run build:extension:prod
+     # or
+     yarn build:extension:prod
+     ```
+
+### Option 2: GitHub Pages
+
+1. **Deploy to GitHub Pages**:
+   ```bash
+   npm run build
+   # or
+   yarn build
+   ```
+
+2. **Update the extension**:
+   - Update the `GITHUB_PAGES_URL` constant in `public/background.js`:
+     ```javascript
+     const GITHUB_PAGES_URL = 'https://your-username.github.io/your-repo/wallet-connect.html';
+     ```
+   - Build the extension:
+     ```bash
+     npm run build:extension
+     # or
+     yarn build:extension
+     ```
+
+### Option 3: Local Development
+
+1. **Start the local server**:
+   ```bash
+   npm run dev
+   # or
+   yarn dev
+   ```
+
+2. **For HTTPS local development** (recommended for wallet connections):
+   ```bash
+   node serve-https.js
+   ```
 
 ## Usage
 
-### Solana Wallet Connection
+1. **Install the extension** in your browser as described above
 
-1. Click on the extension icon in your browser toolbar to open the popup
+2. **Click on the extension icon** to open the popup
 
-2. Click the "Connect Solana Wallet" button to connect to your Phantom or Solflare wallet
-   - Note: You must have either Phantom or Solflare browser extension installed
+3. **Connect your wallet**:
+   - Click the "Connect Wallet" button
+   - A new tab will open with the wallet connection page
+   - Select your wallet (Phantom, Solflare, etc.)
+   - Approve the connection in your wallet
 
-3. Once connected, your wallet address will be displayed and the "Take Action" and "Sign Message" buttons will be enabled
+4. **Switch environments** (if needed):
+   - In the extension popup, click on the gear icon
+   - Select your preferred environment:
+     - Production (Railway)
+     - GitHub Pages
+     - Local Development
 
-4. You can disconnect your wallet by clicking the "Disconnect" button
+## Debugging
 
-### Extension Actions
+The extension includes debugging tools:
 
-1. Click the "Take Action" button to interact with the current web page
-   - This will display a notification on the page with your wallet address
+1. **View extension logs**:
+   - Open your browser's developer tools
+   - Navigate to the "Console" tab
+   - Filter for messages from the extension
 
-2. Click the "Sign Message" button to sign a message using your Solana wallet
-   - This will prompt your wallet to sign a message
+2. **Debug storage**:
+   - Click the "Debug" button in the extension popup
+   - View current storage values and connection state
 
-### Requirements
+3. **Test Railway deployment**:
+   ```bash
+   npm run test:railway
+   ```
 
-- Phantom or Solflare wallet extension must be installed in your browser to use the Solana wallet features
+For more detailed troubleshooting steps, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
+
+## Building for Distribution
+
+To create a packaged zip file for distribution:
+
+```bash
+npm run build:extension:prod
+# or
+yarn build:extension:prod
+```
+
+This will create `extension-production.zip` in the project root.
+
+## Contributing
+
+Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on how to contribute to this project.
 
 ## Troubleshooting
 
-### HTTPS Requirement for Wallet Connection
+For common issues and their solutions, see [TROUBLESHOOTING.md](TROUBLESHOOTING.md).
 
-Phantom wallet requires a secure context (HTTPS or localhost) to connect. When using the extension:
+## License
 
-1. The extension popup itself runs in a special extension context that is considered secure
-2. When opening the wallet-connect.html page in a new tab, it needs to be served over HTTPS or localhost
-
-#### GitHub Pages Deployment (Recommended)
-
-The easiest way to meet the HTTPS requirement is to deploy the wallet connection page to GitHub Pages:
-
-1. Run the GitHub Pages deployment script:
-   ```bash
-   node deploy-to-gh-pages.js
-   ```
-
-2. Commit and push the `docs` directory to your GitHub repository
-
-3. Enable GitHub Pages in your repository settings:
-   - Go to Settings > Pages
-   - Set the source to "Deploy from a branch"
-   - Select "main" branch and "/docs" folder
-   - Click "Save"
-
-4. Update the `GITHUB_PAGES_URL` constant in `background.js` with your GitHub Pages URL:
-   ```javascript
-   const GITHUB_PAGES_URL = 'https://YOUR_USERNAME.github.io/my-nextjs-app/wallet-connect.html';
-   ```
-
-5. Rebuild the extension and reload it in your browser
-
-#### Local Development (Alternative)
-
-For local development and testing, you can:
-- Use the extension as is (the popup should work)
-- Use the included HTTPS server for testing the wallet connection page:
-
-```bash
-# Install mkcert to create self-signed certificates
-npm install -g mkcert
-mkcert -install
-mkcert localhost
-
-# Run the HTTPS server
-node serve-https.js
-```
-
-Then visit https://localhost:8443/wallet-connect.html to test the wallet connection page.
-
-You can toggle between GitHub Pages and local development mode using the switch in the extension popup.
-
-### "No Solana wallet found" Error
-
-If you see the error "No Solana wallet found. Please install Phantom or Solflare extension":
-
-1. Make sure you have installed either the [Phantom](https://phantom.app/) or [Solflare](https://solflare.com/) wallet extension
-2. After installing the wallet extension, reload the browser extension page
-3. Reload the extension by:
-   - For Chrome/Edge/Brave: Click the refresh icon on the extension card in chrome://extensions
-   - For Firefox: Remove and reload the extension from about:debugging
-
-### Wallet Connection Issues
-
-If you have a wallet installed but still can't connect:
-
-1. Make sure your wallet is unlocked (you've entered your password)
-2. Try restarting your browser
-3. Check if your wallet works on other Solana dApps (like [Solana Explorer](https://explorer.solana.com/))
-4. Make sure you're using the latest version of the wallet extension
+MIT
