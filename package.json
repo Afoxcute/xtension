@@ -9,6 +9,8 @@
     "build": "node deploy-to-gh-pages.js",
     "build:extension": "node build-extension.js && node fix-browser-compatibility.js",
     "build:extension:prod": "node build-extension-production.js && node fix-browser-compatibility.js",
+    "build:railway": "node build-for-railway.js",
+    "bundle:extension": "node bundle-extension.js",
     "fix:compatibility": "node fix-browser-compatibility.js",
     "test:railway": "node test-railway-deployment.js",
     "postinstall": "npm run build"

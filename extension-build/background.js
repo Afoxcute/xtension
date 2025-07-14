@@ -27,7 +27,7 @@ chrome.storage.onChanged.addListener(function(changes, namespace) {
 });
 
 // Production URL for wallet connection (Railway deployment)
-const PRODUCTION_URL = 'https://web-production-a2ab.up.railway.app/wallet-connect.html';
+const PRODUCTION_URL = 'https://solana-wallet-extension.up.railway.app/wallet-connect.html';
 
 // GitHub Pages URL for wallet connection (fallback)
 const GITHUB_PAGES_URL = 'https://hoepeyemi.github.io/xtension/wallet-connect.html';
