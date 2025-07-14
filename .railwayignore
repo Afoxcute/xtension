@@ -1,0 +1,22 @@
+# Exclude extension-build directory
+/extension-build
+
+# Exclude Next.js files
+/src
+/.next
+/out
+
+# Exclude git files
+/.git
+/.github
+
+# Exclude node_modules (Railway will install them)
+/node_modules
+
+# Exclude development files
+*.log
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local 

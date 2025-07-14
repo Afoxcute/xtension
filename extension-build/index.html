@@ -30,14 +30,30 @@
         <button id="actionButton" disabled>Take Action</button>
         <button id="signMessageButton" class="secondary-button" style="display: none;">Sign Message</button>
       </div>
+      
+      <!-- Debug Section -->
+      <div class="debug-section" style="margin-top: 20px; border-top: 1px dashed #ccc; padding-top: 10px;">
+        <button id="debugButton" style="background-color: #333; font-size: 11px;">Check Storage</button>
+      </div>
     </div>
     <div class="footer">
       <p>Created with Next.js</p>
     </div>
   </div>
+  <script src="debug.js"></script>
   <script src="wallet-detector.js"></script>
   <script src="solana-wallet.js"></script>
   <script src="gh-pages-bridge.js"></script>
   <script src="popup.js"></script>
+  <script>
+    // Add event listener for debug button
+    document.getElementById('debugButton').addEventListener('click', function() {
+      if (window.debugTools) {
+        window.debugTools.checkChromeStorage();
+      } else {
+        console.error('Debug tools not available');
+      }
+    });
+  </script>
 </body>
 </html> 

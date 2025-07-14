@@ -254,36 +254,137 @@ document.addEventListener('DOMContentLoaded', function() {
   const isDevelopment = process.env.NODE_ENV === 'development' || true; // Set to true for now
   
   if (isDevelopment) {
-    // Create development mode toggle
+    // Create environment toggles
     const footer = document.querySelector('.footer');
     
     if (footer) {
-      const devModeToggle = document.createElement('div');
-      devModeToggle.className = 'dev-mode-toggle';
+      // Create container for toggles
+      const togglesContainer = document.createElement('div');
+      togglesContainer.className = 'toggles-container';
+      togglesContainer.style.display = 'flex';
+      togglesContainer.style.flexDirection = 'column';
+      togglesContainer.style.gap = '8px';
+      togglesContainer.style.marginTop = '10px';
+      togglesContainer.style.paddingTop = '10px';
+      togglesContainer.style.borderTop = '1px dashed #ddd';
       
-      // Check current development mode setting
-      chrome.storage.local.get(['useLocalDevelopment'], function(result) {
+      // Check current environment settings
+      chrome.storage.local.get(['useLocalDevelopment', 'useGitHubPages'], function(result) {
         const isLocalDev = result.useLocalDevelopment || false;
+        const isGitHubPages = result.useGitHubPages || false;
+        
+        // Create local development toggle
+        const devModeToggle = document.createElement('div');
+        devModeToggle.className = 'toggle-item';
+        devModeToggle.style.display = 'flex';
+        devModeToggle.style.alignItems = 'center';
         
         devModeToggle.innerHTML = `
           <label class="switch">
             <input type="checkbox" id="devModeCheckbox" ${isLocalDev ? 'checked' : ''}>
             <span class="slider"></span>
           </label>
-          <span class="dev-mode-label">Local Development</span>
+          <span class="toggle-label">Local Development</span>
         `;
         
-        footer.appendChild(devModeToggle);
+        // Create GitHub Pages toggle
+        const githubPagesToggle = document.createElement('div');
+        githubPagesToggle.className = 'toggle-item';
+        githubPagesToggle.style.display = 'flex';
+        githubPagesToggle.style.alignItems = 'center';
         
-        // Add event listener to the checkbox
-        const checkbox = document.getElementById('devModeCheckbox');
-        if (checkbox) {
-          checkbox.addEventListener('change', function() {
+        githubPagesToggle.innerHTML = `
+          <label class="switch">
+            <input type="checkbox" id="githubPagesCheckbox" ${isGitHubPages ? 'checked' : ''}>
+            <span class="slider"></span>
+          </label>
+          <span class="toggle-label">GitHub Pages</span>
+        `;
+        
+        // Create Railway production toggle
+        const productionToggle = document.createElement('div');
+        productionToggle.className = 'toggle-item';
+        productionToggle.style.display = 'flex';
+        productionToggle.style.alignItems = 'center';
+        
+        productionToggle.innerHTML = `
+          <label class="switch">
+            <input type="checkbox" id="productionCheckbox" ${!isLocalDev && !isGitHubPages ? 'checked' : ''}>
+            <span class="slider"></span>
+          </label>
+          <span class="toggle-label">Railway Production</span>
+        `;
+        
+        // Add toggles to container
+        togglesContainer.appendChild(devModeToggle);
+        togglesContainer.appendChild(githubPagesToggle);
+        togglesContainer.appendChild(productionToggle);
+        
+        // Add container to footer
+        footer.appendChild(togglesContainer);
+        
+        // Add event listeners to the checkboxes
+        const devModeCheckbox = document.getElementById('devModeCheckbox');
+        const githubPagesCheckbox = document.getElementById('githubPagesCheckbox');
+        const productionCheckbox = document.getElementById('productionCheckbox');
+        
+        if (devModeCheckbox) {
+          devModeCheckbox.addEventListener('change', function() {
             chrome.runtime.sendMessage({ 
               action: 'toggleDevelopmentMode' 
             }, function(response) {
               console.log('Development mode toggled:', response);
+              
+              // Update other checkboxes
+              if (response.useLocalDevelopment) {
+                githubPagesCheckbox.checked = false;
+                productionCheckbox.checked = false;
+              } else {
+                productionCheckbox.checked = true;
+              }
             });
+          });
+        }
+        
+        if (githubPagesCheckbox) {
+          githubPagesCheckbox.addEventListener('change', function() {
+            chrome.runtime.sendMessage({ 
+              action: 'toggleGitHubPages' 
+            }, function(response) {
+              console.log('GitHub Pages mode toggled:', response);
+              
+              // Update other checkboxes
+              if (response.useGitHubPages) {
+                devModeCheckbox.checked = false;
+                productionCheckbox.checked = false;
+              } else {
+                productionCheckbox.checked = true;
+              }
+            });
+          });
+        }
+        
+        if (productionCheckbox) {
+          productionCheckbox.addEventListener('change', function() {
+            // If production is checked, uncheck others
+            if (this.checked) {
+              devModeCheckbox.checked = false;
+              githubPagesCheckbox.checked = false;
+              
+              // Disable both local development and GitHub Pages
+              chrome.storage.local.set({
+                useLocalDevelopment: false,
+                useGitHubPages: false
+              }, function() {
+                console.log('Production mode enabled');
+              });
+            } else {
+              // If unchecking production, default to GitHub Pages
+              githubPagesCheckbox.checked = true;
+              chrome.runtime.sendMessage({ 
+                action: 'toggleGitHubPages' 
+              });
+            }
           });
         }
       });

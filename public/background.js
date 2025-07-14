@@ -26,12 +26,15 @@ chrome.storage.onChanged.addListener(function(changes, namespace) {
   }
 });
 
-// GitHub Pages URL for wallet connection (update this with your actual GitHub Pages URL)
+// Production URL for wallet connection (Railway deployment)
+const PRODUCTION_URL = 'https://solana-wallet-extension.up.railway.app/wallet-connect.html';
+
+// GitHub Pages URL for wallet connection (fallback)
 const GITHUB_PAGES_URL = 'https://hoepeyemi.github.io/xtension/wallet-connect.html';
 
 // Local development URLs
 const LOCAL_URLS = [
-  'http://localhost:8000/wallet-connect.html',
+  'http://localhost:3000/wallet-connect.html',
   'https://localhost:8443/wallet-connect.html'
 ];
 
@@ -85,18 +88,22 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   }
   else if (request.action === 'openWalletConnect') {
     // Determine which URL to use
-    // In production, use the GitHub Pages URL
+    // In production, use the Railway URL
     // For development, you can set a flag in storage to use local URLs
     
-    chrome.storage.local.get(['useLocalDevelopment'], function(result) {
-      let url = GITHUB_PAGES_URL; // Default to GitHub Pages
+    chrome.storage.local.get(['useLocalDevelopment', 'useGitHubPages'], function(result) {
+      let url = PRODUCTION_URL; // Default to Railway production URL
       
       if (result.useLocalDevelopment) {
         // Use local development URL if the flag is set
         url = LOCAL_URLS[0]; // Use the first local URL
         console.log('Using local development URL:', url);
-      } else {
+      } else if (result.useGitHubPages) {
+        // Use GitHub Pages URL if the flag is set
+        url = GITHUB_PAGES_URL;
         console.log('Using GitHub Pages URL:', url);
+      } else {
+        console.log('Using production URL:', url);
       }
       
       // Open wallet connect page in a new tab
@@ -109,14 +116,45 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     return true;
   }
   else if (request.action === 'toggleDevelopmentMode') {
-    // Toggle between GitHub Pages and local development
+    // Toggle between production and local development
     chrome.storage.local.get(['useLocalDevelopment'], function(result) {
       const newValue = !result.useLocalDevelopment;
-      chrome.storage.local.set({ useLocalDevelopment: newValue });
+      // If enabling local development, disable GitHub Pages
+      if (newValue) {
+        chrome.storage.local.set({ 
+          useLocalDevelopment: newValue,
+          useGitHubPages: false
+        });
+      } else {
+        chrome.storage.local.set({ useLocalDevelopment: newValue });
+      }
+      
       sendResponse({ 
         status: 'success', 
         useLocalDevelopment: newValue,
-        message: newValue ? 'Using local development URLs' : 'Using GitHub Pages URL'
+        message: newValue ? 'Using local development URLs' : 'Using production URL'
+      });
+    });
+    return true;
+  }
+  else if (request.action === 'toggleGitHubPages') {
+    // Toggle between production and GitHub Pages
+    chrome.storage.local.get(['useGitHubPages'], function(result) {
+      const newValue = !result.useGitHubPages;
+      // If enabling GitHub Pages, disable local development
+      if (newValue) {
+        chrome.storage.local.set({ 
+          useGitHubPages: newValue,
+          useLocalDevelopment: false
+        });
+      } else {
+        chrome.storage.local.set({ useGitHubPages: newValue });
+      }
+      
+      sendResponse({ 
+        status: 'success', 
+        useGitHubPages: newValue,
+        message: newValue ? 'Using GitHub Pages URL' : 'Using production URL'
       });
     });
     return true;

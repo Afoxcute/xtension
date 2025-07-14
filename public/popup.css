@@ -269,3 +269,24 @@ input:checked + .slider:before {
 .wallet-link.solflare:hover {
   background-color: #E36F1E;
 } 
+
+/* Add styles for the toggle items */
+.toggles-container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #ddd;
+}
+
+.toggle-item {
+  display: flex;
+  align-items: center;
+}
+
+.toggle-label {
+  font-size: 11px;
+  color: #666;
+  margin-left: 8px;
+} 

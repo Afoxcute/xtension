@@ -1,1 +1,292 @@
-function updateWalletUI(e){const t=document.getElementById("connectWalletButton"),n=document.getElementById("error-message")||document.querySelector(".error-message");if(!t||!n)return void console.error("Required UI elements not found");const l=e.phantom.detected,o=e.solflare.detected;l||o?(t.disabled=!1,n.style.display="none",l?(t.textContent="Connect Phantom Wallet",t.classList.add("phantom-button"),t.classList.remove("solflare-button")):o&&(t.textContent="Connect Solflare Wallet",t.classList.add("solflare-button"),t.classList.remove("phantom-button"))):(t.disabled=!0,n.innerHTML='\n      <p>No Solana wallet detected. Please install one of these wallets:</p>\n      <div class="wallet-links">\n        <a href="https://phantom.app/" target="_blank" class="wallet-link phantom">\n          Phantom Wallet\n        </a>\n        <a href="https://solflare.com/" target="_blank" class="wallet-link solflare">\n          Solflare Wallet\n        </a>\n      </div>\n      <p class="small-text">After installation, please reload this extension.</p>\n    ',n.style.display="block")}document.addEventListener("DOMContentLoaded",function(){document.addEventListener("walletAvailabilityChecked",function(e){console.log("Wallet availability check results:",e.detail),e.detail&&(e.detail.phantom.detected||e.detail.solflare.detected)&&updateWalletUI(e.detail)});const e=document.getElementById("connectWalletButton"),t=document.getElementById("disconnectWalletButton"),n=document.getElementById("actionButton"),l=document.getElementById("signMessageButton"),o=document.getElementById("connection-status"),a=document.getElementById("wallet-address"),c=document.getElementById("wallet-status"),s=new SolanaWalletAdapter;function d(s,d=null){if(s&&d){o.textContent="Connected",c.classList.add("connected");const s=d.slice(0,4)+"..."+d.slice(-4);a.textContent=s,a.title=d,a.style.display="block",e.style.display="none",t.style.display="block",n.disabled=!1,l.style.display="block",console.log("UI updated for connected wallet:",d)}else o.textContent="Not connected",c.classList.remove("connected"),a.textContent="",a.style.display="none",e.style.display="block",t.style.display="none",n.disabled=!0,l.style.display="none"}e.addEventListener("click",function(){chrome.runtime.sendMessage({action:"openWalletConnect"},function(e){console.log("Opening wallet connect page:",e)});const e=document.getElementById("error-message");e.innerHTML='\n      <p>Opening wallet connection in a new tab...</p>\n      <p class="small-text">If the tab doesn\'t open, please check your popup blocker settings.</p>\n    ',e.style.display="block";const t=setInterval(()=>{chrome.storage.local.get(["walletConnected","walletPublicKey"],function(n){n.walletConnected&&n.walletPublicKey&&(clearInterval(t),d(!0,n.walletPublicKey),e.style.display="none",console.log("Wallet connected:",n.walletPublicKey))})},1e3);setTimeout(()=>{clearInterval(t)},6e4)}),t.addEventListener("click",async function(){try{await s.disconnect(),chrome.storage.local.remove(["walletConnected","walletPublicKey"]),d(!1)}catch(e){console.error("Failed to disconnect wallet:",e)}}),l.addEventListener("click",async function(){try{l.disabled=!0,l.textContent="Signing...";const e="Hello from My NextJS App Extension!",t=await s.signMessage(e);console.log("Message signed:",t),l.textContent="Signed!",setTimeout(()=>{l.textContent="Sign Message",l.disabled=!1},2e3)}catch(e){console.error("Failed to sign message:",e),l.textContent="Failed",setTimeout(()=>{l.textContent="Sign Message",l.disabled=!1},2e3)}}),n.addEventListener("click",function(){chrome.tabs.query({active:!0,currentWindow:!0},function(e){const t=e[0];chrome.tabs.sendMessage(t.id,{action:"performAction",walletAddress:s.publicKey},function(e){e&&"success"===e.status&&(n.textContent="Action Completed!",setTimeout(function(){n.textContent="Take Action"},2e3))})})}),chrome.storage.local.get(["walletConnected","walletPublicKey"],function(e){e.walletConnected&&e.walletPublicKey?(d(!0,e.walletPublicKey),s.connect().then(({publicKey:e})=>{d(!0,e)}).catch(e=>{console.log("Could not reconnect to wallet, but keeping stored connection:",e)})):d(!1)}),function(){if(!document.getElementById("error-message")){const e=document.createElement("div");e.id="error-message",e.className="error-message",document.querySelector(".wallet-section").appendChild(e)}console.log("Checking for stored wallet connection"),chrome.storage.local.get(["walletConnected","walletPublicKey"],function(e){e.walletConnected&&e.walletPublicKey&&(console.log("Found stored wallet connection:",e.walletPublicKey),d(!0,e.walletPublicKey))})}(),process.env.NODE_ENV;{const e=document.querySelector(".footer");if(e){const t=document.createElement("div");t.className="dev-mode-toggle",chrome.storage.local.get(["useLocalDevelopment"],function(n){const l=n.useLocalDevelopment||!1;t.innerHTML=`\n          <label class="switch">\n            <input type="checkbox" id="devModeCheckbox" ${l?"checked":""}>\n            <span class="slider"></span>\n          </label>\n          <span class="dev-mode-label">Local Development</span>\n        `,e.appendChild(t);const o=document.getElementById("devModeCheckbox");o&&o.addEventListener("change",function(){chrome.runtime.sendMessage({action:"toggleDevelopmentMode"},function(e){console.log("Development mode toggled:",e)})})})}}});
+// Function to update UI based on wallet detection
+function updateWalletUI(walletStatus) {
+  // Ensure we have the connect button and error div
+  const connectWalletButton = document.getElementById('connectWalletButton');
+  const errorDiv = document.getElementById('error-message') || document.querySelector('.error-message');
+  
+  if (!connectWalletButton || !errorDiv) {
+    console.error('Required UI elements not found');
+    return;
+  }
+  
+  const phantomDetected = walletStatus.phantom.detected;
+  const solflareDetected = walletStatus.solflare.detected;
+  
+  if (phantomDetected || solflareDetected) {
+    connectWalletButton.disabled = false;
+    errorDiv.style.display = 'none';
+    
+    // Update button based on detected wallet
+    if (phantomDetected) {
+      connectWalletButton.textContent = 'Connect Phantom Wallet';
+      connectWalletButton.classList.add('phantom-button');
+      connectWalletButton.classList.remove('solflare-button');
+    } else if (solflareDetected) {
+      connectWalletButton.textContent = 'Connect Solflare Wallet';
+      connectWalletButton.classList.add('solflare-button');
+      connectWalletButton.classList.remove('phantom-button');
+    }
+  } else {
+    connectWalletButton.disabled = true;
+    
+    // Show wallet installation instructions
+    errorDiv.innerHTML = `
+      <p>No Solana wallet detected. Please install one of these wallets:</p>
+      <div class="wallet-links">
+        <a href="https://phantom.app/" target="_blank" class="wallet-link phantom">
+          Phantom Wallet
+        </a>
+        <a href="https://solflare.com/" target="_blank" class="wallet-link solflare">
+          Solflare Wallet
+        </a>
+      </div>
+      <p class="small-text">After installation, please reload this extension.</p>
+    `;
+    errorDiv.style.display = 'block';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  // Listen for wallet availability check results from external script
+  document.addEventListener('walletAvailabilityChecked', function(event) {
+    console.log('Wallet availability check results:', event.detail);
+    
+    // Update UI based on wallet detection
+    if (event.detail && (event.detail.phantom.detected || event.detail.solflare.detected)) {
+      updateWalletUI(event.detail);
+    }
+  });
+  // DOM Elements
+  const connectWalletButton = document.getElementById('connectWalletButton');
+  const disconnectWalletButton = document.getElementById('disconnectWalletButton');
+  const actionButton = document.getElementById('actionButton');
+  const signMessageButton = document.getElementById('signMessageButton');
+  const connectionStatus = document.getElementById('connection-status');
+  const walletAddress = document.getElementById('wallet-address');
+  const walletStatus = document.getElementById('wallet-status');
+  
+  // Create wallet adapter instance
+  const walletAdapter = new SolanaWalletAdapter();
+  
+  // Check if wallet is already connected (from previous session)
+  function checkWalletConnection() {
+    // Ensure error div exists
+    if (!document.getElementById('error-message')) {
+      const errorDiv = document.createElement('div');
+      errorDiv.id = 'error-message';
+      errorDiv.className = 'error-message';
+      document.querySelector('.wallet-section').appendChild(errorDiv);
+    }
+    
+    // We'll rely on the external wallet-detector.js script to check for wallet availability
+    // This function now just ensures the error div exists
+    console.log('Checking for stored wallet connection');
+    
+    // Check if we have a stored wallet connection
+    chrome.storage.local.get(['walletConnected', 'walletPublicKey'], function(result) {
+      if (result.walletConnected && result.walletPublicKey) {
+        console.log('Found stored wallet connection:', result.walletPublicKey);
+        updateUI(true, result.walletPublicKey);
+      }
+    });
+  }
+  
+  // Update UI based on connection state
+  function updateUI(isConnected, publicKey = null) {
+    if (isConnected && publicKey) {
+      // Connected state
+      connectionStatus.textContent = 'Connected';
+      walletStatus.classList.add('connected');
+      
+      // Show wallet address with truncation
+      const truncatedAddress = publicKey.slice(0, 4) + '...' + publicKey.slice(-4);
+      walletAddress.textContent = truncatedAddress;
+      walletAddress.title = publicKey; // Full address on hover
+      
+      // Make wallet address visible
+      walletAddress.style.display = 'block';
+      
+      // Update buttons
+      connectWalletButton.style.display = 'none';
+      disconnectWalletButton.style.display = 'block';
+      actionButton.disabled = false;
+      signMessageButton.style.display = 'block';
+      
+      console.log('UI updated for connected wallet:', publicKey);
+    } else {
+      // Disconnected state
+      connectionStatus.textContent = 'Not connected';
+      walletStatus.classList.remove('connected');
+      walletAddress.textContent = '';
+      walletAddress.style.display = 'none';
+      
+      // Update buttons
+      connectWalletButton.style.display = 'block';
+      disconnectWalletButton.style.display = 'none';
+      actionButton.disabled = true;
+      signMessageButton.style.display = 'none';
+    }
+  }
+  
+  // Connect wallet button click handler
+  connectWalletButton.addEventListener('click', function() {
+    // Open wallet connect page in a new tab
+    chrome.runtime.sendMessage({ action: 'openWalletConnect' }, function(response) {
+      console.log('Opening wallet connect page:', response);
+    });
+    
+    // Show message that we're opening a new tab
+    const errorDiv = document.getElementById('error-message');
+    errorDiv.innerHTML = `
+      <p>Opening wallet connection in a new tab...</p>
+      <p class="small-text">If the tab doesn't open, please check your popup blocker settings.</p>
+    `;
+    errorDiv.style.display = 'block';
+    
+    // Listen for wallet connection updates
+    const checkConnectionInterval = setInterval(() => {
+      chrome.storage.local.get(['walletConnected', 'walletPublicKey'], function(result) {
+        if (result.walletConnected && result.walletPublicKey) {
+          clearInterval(checkConnectionInterval);
+          updateUI(true, result.walletPublicKey);
+          errorDiv.style.display = 'none';
+          console.log('Wallet connected:', result.walletPublicKey);
+        }
+      });
+    }, 1000); // Check every second
+    
+    // Stop checking after 60 seconds
+    setTimeout(() => {
+      clearInterval(checkConnectionInterval);
+    }, 60000);
+  });
+  
+  // Disconnect wallet button click handler
+  disconnectWalletButton.addEventListener('click', async function() {
+    try {
+      await walletAdapter.disconnect();
+      
+      // Clear connection info from extension storage
+      chrome.storage.local.remove(['walletConnected', 'walletPublicKey']);
+      
+      updateUI(false);
+    } catch (error) {
+      console.error('Failed to disconnect wallet:', error);
+    }
+  });
+  
+  // Sign message button click handler
+  signMessageButton.addEventListener('click', async function() {
+    try {
+      signMessageButton.disabled = true;
+      signMessageButton.textContent = 'Signing...';
+      
+      const message = 'Hello from My NextJS App Extension!';
+      const result = await walletAdapter.signMessage(message);
+      
+      console.log('Message signed:', result);
+      
+      // Show success message
+      signMessageButton.textContent = 'Signed!';
+      setTimeout(() => {
+        signMessageButton.textContent = 'Sign Message';
+        signMessageButton.disabled = false;
+      }, 2000);
+    } catch (error) {
+      console.error('Failed to sign message:', error);
+      signMessageButton.textContent = 'Failed';
+      setTimeout(() => {
+        signMessageButton.textContent = 'Sign Message';
+        signMessageButton.disabled = false;
+      }, 2000);
+    }
+  });
+  
+  // Action button click handler
+  actionButton.addEventListener('click', function() {
+    // Get the active tab
+    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+      const activeTab = tabs[0];
+      
+      // Send a message to the content script with wallet info
+      chrome.tabs.sendMessage(activeTab.id, {
+        action: "performAction",
+        walletAddress: walletAdapter.publicKey
+      }, function(response) {
+        if (response && response.status === 'success') {
+          // Update the button text to show success
+          actionButton.textContent = 'Action Completed!';
+          
+          // Reset the button text after 2 seconds
+          setTimeout(function() {
+            actionButton.textContent = 'Take Action';
+          }, 2000);
+        }
+      });
+    });
+  });
+  
+  // Check for stored wallet connection
+  chrome.storage.local.get(['walletConnected', 'walletPublicKey'], function(result) {
+    if (result.walletConnected && result.walletPublicKey) {
+      // Update UI with stored connection
+      updateUI(true, result.walletPublicKey);
+      
+      // Try to reconnect if we have stored connection
+      walletAdapter.connect()
+        .then(({ publicKey }) => {
+          updateUI(true, publicKey);
+        })
+        .catch((error) => {
+          console.log('Could not reconnect to wallet, but keeping stored connection:', error);
+          // We'll keep the stored connection and not clear it
+          // This allows the user to see their address even if the wallet isn't currently available
+        });
+    } else {
+      updateUI(false);
+    }
+  });
+  
+  // Check wallet connection on load
+  checkWalletConnection();
+  
+  // Add development mode toggle (only visible in development)
+  const isDevelopment = process.env.NODE_ENV === 'development' || true; // Set to true for now
+  
+  if (isDevelopment) {
+    // Create development mode toggle
+    const footer = document.querySelector('.footer');
+    
+    if (footer) {
+      const devModeToggle = document.createElement('div');
+      devModeToggle.className = 'dev-mode-toggle';
+      
+      // Check current development mode setting
+      chrome.storage.local.get(['useLocalDevelopment'], function(result) {
+        const isLocalDev = result.useLocalDevelopment || false;
+        
+        devModeToggle.innerHTML = `
+          <label class="switch">
+            <input type="checkbox" id="devModeCheckbox" ${isLocalDev ? 'checked' : ''}>
+            <span class="slider"></span>
+          </label>
+          <span class="dev-mode-label">Local Development</span>
+        `;
+        
+        footer.appendChild(devModeToggle);
+        
+        // Add event listener to the checkbox
+        const checkbox = document.getElementById('devModeCheckbox');
+        if (checkbox) {
+          checkbox.addEventListener('change', function() {
+            chrome.runtime.sendMessage({ 
+              action: 'toggleDevelopmentMode' 
+            }, function(response) {
+              console.log('Development mode toggled:', response);
+            });
+          });
+        }
+      });
+    }
+  }
+}); 
