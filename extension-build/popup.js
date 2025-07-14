@@ -81,6 +81,14 @@ document.addEventListener('DOMContentLoaded', function() {
     // We'll rely on the external wallet-detector.js script to check for wallet availability
     // This function now just ensures the error div exists
     console.log('Checking for stored wallet connection');
+    
+    // Check if we have a stored wallet connection
+    chrome.storage.local.get(['walletConnected', 'walletPublicKey'], function(result) {
+      if (result.walletConnected && result.walletPublicKey) {
+        console.log('Found stored wallet connection:', result.walletPublicKey);
+        updateUI(true, result.walletPublicKey);
+      }
+    });
   }
   
   // Update UI based on connection state
@@ -95,16 +103,22 @@ document.addEventListener('DOMContentLoaded', function() {
       walletAddress.textContent = truncatedAddress;
       walletAddress.title = publicKey; // Full address on hover
       
+      // Make wallet address visible
+      walletAddress.style.display = 'block';
+      
       // Update buttons
       connectWalletButton.style.display = 'none';
       disconnectWalletButton.style.display = 'block';
       actionButton.disabled = false;
       signMessageButton.style.display = 'block';
+      
+      console.log('UI updated for connected wallet:', publicKey);
     } else {
       // Disconnected state
       connectionStatus.textContent = 'Not connected';
       walletStatus.classList.remove('connected');
       walletAddress.textContent = '';
+      walletAddress.style.display = 'none';
       
       // Update buttons
       connectWalletButton.style.display = 'block';
@@ -136,6 +150,7 @@ document.addEventListener('DOMContentLoaded', function() {
           clearInterval(checkConnectionInterval);
           updateUI(true, result.walletPublicKey);
           errorDiv.style.display = 'none';
+          console.log('Wallet connected:', result.walletPublicKey);
         }
       });
     }, 1000); // Check every second
@@ -214,15 +229,18 @@ document.addEventListener('DOMContentLoaded', function() {
   // Check for stored wallet connection
   chrome.storage.local.get(['walletConnected', 'walletPublicKey'], function(result) {
     if (result.walletConnected && result.walletPublicKey) {
+      // Update UI with stored connection
+      updateUI(true, result.walletPublicKey);
+      
       // Try to reconnect if we have stored connection
       walletAdapter.connect()
         .then(({ publicKey }) => {
           updateUI(true, publicKey);
         })
-        .catch(() => {
-          // If reconnection fails, clear stored data
-          chrome.storage.local.remove(['walletConnected', 'walletPublicKey']);
-          updateUI(false);
+        .catch((error) => {
+          console.log('Could not reconnect to wallet, but keeping stored connection:', error);
+          // We'll keep the stored connection and not clear it
+          // This allows the user to see their address even if the wallet isn't currently available
         });
     } else {
       updateUI(false);

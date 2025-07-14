@@ -39,8 +39,47 @@ document.addEventListener('DOMContentLoaded', function() {
       walletAddressDisplay.textContent = publicKey;
       walletAddressDisplay.style.display = 'block';
       
-      // Store the public key in localStorage for the extension to retrieve
-      localStorage.setItem('solanaWalletPublicKey', publicKey);
+      // Try to directly communicate with the extension if possible
+      if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id) {
+        try {
+          // We're in the extension context
+          chrome.runtime.sendMessage({
+            action: 'walletConnected',
+            publicKey: publicKey
+          }, function(response) {
+            if (chrome.runtime.lastError) {
+              console.error('Error sending message to extension:', chrome.runtime.lastError);
+              // Fall back to localStorage
+              localStorage.setItem('solanaWalletPublicKey', publicKey);
+            } else {
+              console.log('Message sent directly to extension:', response);
+              
+              // Close this tab after a short delay
+              setTimeout(() => {
+                window.close();
+              }, 2000);
+            }
+          });
+        } catch (err) {
+          console.error('Failed to send message directly to extension:', err);
+          // Fall back to localStorage
+          localStorage.setItem('solanaWalletPublicKey', publicKey);
+        }
+      } else {
+        // We're on GitHub Pages - use localStorage
+        console.log('Using localStorage to pass wallet address to extension');
+        localStorage.setItem('solanaWalletPublicKey', publicKey);
+        
+        // Also try the wallet_connected message format from the guide
+        try {
+          window.postMessage({
+            type: 'WALLET_CONNECTED',
+            publicKey: publicKey
+          }, '*');
+        } catch (err) {
+          console.error('Error posting message:', err);
+        }
+      }
       
       // Show a message to the user
       showStatus('Connected! You can close this tab and return to the extension.');

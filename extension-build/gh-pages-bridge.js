@@ -36,8 +36,39 @@ function checkForWalletConnection() {
   return false;
 }
 
+// Listen for window messages (alternative method)
+function setupMessageListener() {
+  window.addEventListener('message', function(event) {
+    // We only accept messages from ourselves
+    if (event.source !== window) return;
+    
+    if (event.data.type && event.data.type === 'WALLET_CONNECTED') {
+      console.log('Received wallet connection via postMessage:', event.data);
+      
+      const publicKey = event.data.publicKey;
+      
+      if (publicKey && typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id) {
+        chrome.runtime.sendMessage({
+          action: 'walletConnected',
+          publicKey: publicKey,
+          source: 'window-message'
+        }, function(response) {
+          if (chrome.runtime.lastError) {
+            console.error('Error sending message from window event:', chrome.runtime.lastError);
+          } else {
+            console.log('Wallet connection data sent to extension from window event:', response);
+          }
+        });
+      }
+    }
+  }, false);
+}
+
 // Only run this script in the extension context
 if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.id) {
+  // Set up the message listener
+  setupMessageListener();
+  
   // Check for wallet connection data when the script loads
   if (checkForWalletConnection()) {
     console.log('Successfully processed wallet connection from GitHub Pages');

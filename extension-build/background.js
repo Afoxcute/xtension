@@ -35,6 +35,26 @@ const LOCAL_URLS = [
   'https://localhost:8443/wallet-connect.html'
 ];
 
+// Function to handle wallet connection
+function handleWalletConnection(publicKey, sendResponse) {
+  console.log('Wallet connected with public key:', publicKey);
+  
+  // Save connection info
+  chrome.storage.local.set({ 
+    walletConnected: true,
+    walletPublicKey: publicKey
+  });
+  
+  // Set badge
+  chrome.action.setBadgeText({ text: 'SOL' });
+  chrome.action.setBadgeBackgroundColor({ color: '#14F195' });
+  
+  // Send response if callback provided
+  if (sendResponse) {
+    sendResponse({ status: 'success' });
+  }
+}
+
 // Handle messages from content scripts and other extension pages
 chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
   if (request.action === 'checkWalletConnection') {
@@ -47,22 +67,20 @@ chrome.runtime.onMessage.addListener(function(request, sender, sendResponse) {
     });
     return true; // Keep the message channel open for async response
   } 
-  else if (request.action === 'walletConnected') {
+  else if (request.action === 'walletConnected' || request.action === 'wallet_connected') {
     // Wallet connected from the wallet-connect.html page
-    console.log('Wallet connected from external page:', request.publicKey);
+    console.log('Wallet connected from external page:', request.publicKey || request.address);
     
-    // Save connection info
-    chrome.storage.local.set({ 
-      walletConnected: true,
-      walletPublicKey: request.publicKey
-    });
+    // Use either publicKey or address property
+    const publicKey = request.publicKey || request.address;
     
-    // Set badge
-    chrome.action.setBadgeText({ text: 'SOL' });
-    chrome.action.setBadgeBackgroundColor({ color: '#14F195' });
+    if (publicKey) {
+      handleWalletConnection(publicKey, sendResponse);
+    } else {
+      console.error('No public key provided in wallet connection message');
+      sendResponse({ status: 'error', message: 'No public key provided' });
+    }
     
-    // Send response
-    sendResponse({ status: 'success' });
     return true;
   }
   else if (request.action === 'openWalletConnect') {
