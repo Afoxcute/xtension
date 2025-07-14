@@ -40,17 +40,36 @@ document.addEventListener('DOMContentLoaded', function() {
       walletAddressDisplay.style.display = 'block';
       
       // Send message to extension
-      chrome.runtime.sendMessage({
-        action: 'walletConnected',
-        publicKey: publicKey
-      }, function(response) {
-        console.log('Message sent to extension:', response);
+      // When hosted on GitHub Pages, we need to use a different approach
+      // since chrome.runtime is only available in extension context
+      if (typeof chrome !== 'undefined' && chrome.runtime) {
+        // Running in extension context
+        chrome.runtime.sendMessage({
+          action: 'walletConnected',
+          publicKey: publicKey
+        }, function(response) {
+          console.log('Message sent to extension:', response);
+          
+          // Close this tab after a short delay
+          setTimeout(() => {
+            window.close();
+          }, 2000);
+        });
+      } else {
+        // Running on GitHub Pages
+        // Store the public key in localStorage
+        localStorage.setItem('solanaWalletPublicKey', publicKey);
         
-        // Close this tab after a short delay
-        setTimeout(() => {
-          window.close();
-        }, 2000);
-      });
+        // Show a message to the user
+        showStatus('Connected! You can close this tab and return to the extension.');
+        
+        // Add a button to close the tab
+        const closeButton = document.createElement('button');
+        closeButton.textContent = 'Close This Tab';
+        closeButton.className = 'close-button';
+        closeButton.addEventListener('click', () => window.close());
+        document.querySelector('.container').appendChild(closeButton);
+      }
       
       return publicKey;
     } catch (error) {
