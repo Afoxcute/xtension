@@ -3,22 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My NextJS App Extension</title>
+  <title>Solana Wallet Extension</title>
   <link rel="stylesheet" href="popup.css">
 </head>
 <body>
   <div class="container">
     <div class="header">
-      <h1>My NextJS App Extension</h1>
+      <h1>Solana Wallet Extension</h1>
     </div>
     <div class="content">
-      <p>Welcome to my browser extension!</p>
+      <p>Connect your Solana wallet to get started</p>
       
       <!-- Wallet Connection Section -->
       <div class="wallet-section">
         <div id="wallet-status" class="wallet-status">
           <span id="connection-status">Not connected</span>
           <span id="wallet-address"></span>
+        </div>
+        <div class="wallet-info">
+          <!-- Points display will be added here by JavaScript -->
         </div>
         <button id="connectWalletButton" class="primary-button">Connect Solana Wallet</button>
         <button id="disconnectWalletButton" class="secondary-button" style="display: none;">Disconnect</button>
@@ -32,11 +35,12 @@
       </div>
     </div>
     <div class="footer">
-      <p>Created with Next.js</p>
+      <p>Solana Wallet Integration</p>
     </div>
   </div>
   <script src="wallet-detector.js"></script>
   <script src="solana-wallet.js"></script>
+  <script src="wallet-connect-script.js"></script>
   <script src="gh-pages-bridge.js"></script>
   <script src="popup.js"></script>
 </body>

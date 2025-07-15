@@ -4,75 +4,135 @@ const { execSync } = require('child_process');
 
 console.log('Building extension for Railway deployment...');
 
-// Step 1: Build the extension
-console.log('\nStep 1: Building extension...');
-try {
-  execSync('node build-extension.js', { stdio: 'inherit' });
-} catch (error) {
-  console.error('Error building extension:', error);
-  process.exit(1);
+// Create extension build directory if it doesn't exist
+const buildDir = path.join(__dirname, 'extension-build');
+if (!fs.existsSync(buildDir)) {
+  fs.mkdirSync(buildDir, { recursive: true });
 }
 
-// Step 2: Apply browser compatibility fixes
-console.log('\nStep 2: Applying browser compatibility fixes...');
-try {
-  execSync('node fix-browser-compatibility.js', { stdio: 'inherit' });
-} catch (error) {
-  console.error('Error applying compatibility fixes:', error);
-  process.exit(1);
-}
-
-// Step 3: Bundle the extension (non-ES modules version)
-console.log('\nStep 3: Bundling extension...');
-try {
-  execSync('node bundle-extension.js', { stdio: 'inherit' });
-} catch (error) {
-  console.error('Error bundling extension:', error);
-  process.exit(1);
-}
-
-// Step 4: Update Railway URL in the bundled extension
-console.log('\nStep 4: Updating Railway URL...');
-const RAILWAY_URL = 'https://web-production-a2ab.up.railway.app/wallet-connect.html';
-
-// Update background.js with the Railway URL
-const backgroundPath = path.join(__dirname, 'extension-bundled', 'background.js');
-let backgroundContent = fs.readFileSync(backgroundPath, 'utf8');
-backgroundContent = backgroundContent.replace(
-  /const PRODUCTION_URL = ['"].*?['"];/,
-  `const PRODUCTION_URL = '${RAILWAY_URL}';`
-);
-fs.writeFileSync(backgroundPath, backgroundContent);
-
-// Step 5: Create a zip file for easy distribution
-console.log('\nStep 5: Creating distribution zip...');
-try {
-  const archiver = require('archiver');
-  const output = fs.createWriteStream(path.join(__dirname, 'solana-wallet-extension-railway.zip'));
-  const archive = archiver('zip', {
-    zlib: { level: 9 } // Maximum compression
-  });
+// Copy all files from public to build directory
+function copyDir(src, dest) {
+  if (!fs.existsSync(dest)) {
+    fs.mkdirSync(dest, { recursive: true });
+  }
   
-  output.on('close', function() {
-    console.log(`\nExtension packaged successfully: ${archive.pointer()} total bytes`);
-    console.log('Zip file created: solana-wallet-extension-railway.zip');
-  });
+  const entries = fs.readdirSync(src, { withFileTypes: true });
   
-  archive.on('error', function(err) {
-    throw err;
-  });
-  
-  archive.pipe(output);
-  archive.directory(path.join(__dirname, 'extension-bundled'), false);
-  archive.finalize();
-} catch (error) {
-  console.log('\nCould not create zip file. If you want to package the extension, install archiver:');
-  console.log('npm install archiver --save-dev');
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+    
+    if (entry.isDirectory()) {
+      copyDir(srcPath, destPath);
+    } else {
+      try {
+        // Read the source file
+        const content = fs.readFileSync(srcPath);
+        
+        // Write to destination
+        fs.writeFileSync(destPath, content);
+        console.log(`Copied ${entry.name}`);
+      } catch (error) {
+        console.error(`Error copying file ${entry.name}:`, error);
+      }
+    }
+  }
 }
 
-console.log('\nExtension built successfully for Railway deployment!');
-console.log('\nTo load the extension in Chrome:');
-console.log('1. Open Chrome and navigate to chrome://extensions/');
-console.log('2. Enable "Developer mode" (toggle in the top right)');
-console.log('3. Click "Load unpacked" and select the "extension-bundled" folder');
-console.log('\nOr use the solana-wallet-extension-railway.zip file for distribution.'); 
+// Copy public directory contents to build directory
+const publicDir = path.join(__dirname, 'public');
+copyDir(publicDir, buildDir);
+
+// Update background.js to use only Railway URL
+const backgroundJsPath = path.join(buildDir, 'background.js');
+if (fs.existsSync(backgroundJsPath)) {
+  let backgroundJs = fs.readFileSync(backgroundJsPath, 'utf8');
+  
+  // Update the URL constants to only use Railway
+  const railwayUrl = process.env.RAILWAY_STATIC_URL || 'https://solana-wallet-extension.up.railway.app';
+  
+  // Replace the URL constants section
+  const urlConstantsRegex = /\/\/ Production URL for wallet connection[\s\S]*?const LOCAL_URLS[\s\S]*?\];/;
+  const newUrlConstants = `// Production URL for wallet connection (Railway deployment)
+const PRODUCTION_URL = '${railwayUrl}/wallet-connect.html';
+
+// No fallback URLs for Railway deployment
+const GITHUB_PAGES_URL = '${railwayUrl}/wallet-connect.html';
+
+// No local development URLs for Railway deployment
+const LOCAL_URLS = [
+  '${railwayUrl}/wallet-connect.html'
+];`;
+
+  backgroundJs = backgroundJs.replace(urlConstantsRegex, newUrlConstants);
+  
+  // Disable local development and GitHub Pages options
+  backgroundJs = backgroundJs.replace(/const newValue = !result\.useLocalDevelopment;/g, 'const newValue = false;');
+  backgroundJs = backgroundJs.replace(/const newValue = !result\.useGitHubPages;/g, 'const newValue = false;');
+  
+  fs.writeFileSync(backgroundJsPath, backgroundJs);
+  console.log('Updated background.js with Railway URL');
+}
+
+// Create a simple HTML page that redirects to the wallet-connect.html
+const indexHtmlPath = path.join(buildDir, 'index.html');
+const redirectHtml = `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solana Wallet Extension - Railway Deployment</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+      line-height: 1.6;
+    }
+    .container {
+      background-color: #f9f9f9;
+      border-radius: 8px;
+      padding: 20px;
+      margin-top: 20px;
+    }
+    h1 {
+      color: #9945FF;
+    }
+    a {
+      color: #0070f3;
+      text-decoration: none;
+    }
+    a:hover {
+      text-decoration: underline;
+    }
+    .button {
+      display: inline-block;
+      background-color: #9945FF;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 4px;
+      margin-top: 20px;
+      text-decoration: none;
+    }
+    .button:hover {
+      background-color: #7F38CC;
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+  <h1>Solana Wallet Extension - Railway Deployment</h1>
+  <div class="container">
+    <p>This is the Railway deployment for the Solana Wallet Browser Extension.</p>
+    <p>This server hosts the wallet connection page that is required for the browser extension to connect to Solana wallets.</p>
+    <p>To use this service, you need to install the browser extension first.</p>
+    <a href="/wallet-connect.html" class="button">Go to Wallet Connection Page</a>
+  </div>
+</body>
+</html>`;
+
+fs.writeFileSync(indexHtmlPath, redirectHtml);
+console.log('Created index.html with redirect to wallet-connect.html');
+
+console.log('Railway build completed successfully!'); 
