@@ -16,7 +16,7 @@ Make sure your repository contains all the necessary files:
 - `build-for-railway.js` - Script to prepare the extension for Railway deployment
 - `railway.json` - Railway configuration file
 - `Procfile` - Specifies the command to run on Railway
-- `package.json` - With the consolidated "railway" script that handles both build and start
+- `package.json` - With the necessary scripts and dependencies
 
 ## Step 2: Deploy to Railway
 
@@ -92,9 +92,13 @@ If your extension can't connect to the wallet:
 If your deployment fails:
 
 1. Check Railway logs for error messages
-2. Verify your `package.json` "railway" script is correct and includes both build and start commands
-3. Make sure all dependencies are properly listed in your `package.json`
-4. Confirm that the Procfile contains `web: npm run railway`
+2. Verify your `package.json` has the correct "build" script: `"build": "node build-for-railway.js"`
+3. Make sure your `railway.json` file has the correct commands:
+   ```json
+   "buildCommand": "npm install && node build-for-railway.js",
+   "startCommand": "node server.js"
+   ```
+4. Confirm that the Procfile contains `web: node server.js`
 
 ## Automatic Updates
 

@@ -6,14 +6,12 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "build": "node deploy-to-gh-pages.js",
+    "build": "node build-for-railway.js",
     "build:extension": "node build-extension.js && node fix-browser-compatibility.js",
     "build:extension:prod": "node build-extension-production.js && node fix-browser-compatibility.js",
-    "railway": "node build-for-railway.js && node server.js",
     "bundle:extension": "node bundle-extension.js",
     "fix:compatibility": "node fix-browser-compatibility.js",
-    "test:railway": "node test-railway-deployment.js",
-    "postinstall": "node build-for-railway.js"
+    "test:railway": "node test-railway-deployment.js"
   },
   "engines": {
     "node": ">=14.0.0"

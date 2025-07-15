@@ -23,22 +23,22 @@ for (const file of requiredFiles) {
   }
 }
 
-// Check package.json for railway script
+// Check package.json for build script
 const packageJson = require('./package.json');
-if (packageJson.scripts && packageJson.scripts.railway) {
-  console.log('✓ "railway" script found in package.json');
+if (packageJson.scripts && packageJson.scripts.build === 'node build-for-railway.js') {
+  console.log('✓ "build" script is correctly set in package.json');
 } else {
-  console.error('✗ "railway" script is missing in package.json');
+  console.error('✗ "build" script is incorrect or missing in package.json');
   allFilesExist = false;
 }
 
 // Check Procfile content
 if (fs.existsSync(path.join(__dirname, 'Procfile'))) {
   const procfileContent = fs.readFileSync(path.join(__dirname, 'Procfile'), 'utf8');
-  if (procfileContent.includes('web: npm run railway')) {
+  if (procfileContent.includes('web: node server.js')) {
     console.log('✓ Procfile contains correct command');
   } else {
-    console.error('✗ Procfile does not contain "web: npm run railway"');
+    console.error('✗ Procfile does not contain "web: node server.js"');
     allFilesExist = false;
   }
 }
@@ -46,7 +46,14 @@ if (fs.existsSync(path.join(__dirname, 'Procfile'))) {
 // Check railway.json content
 if (fs.existsSync(path.join(__dirname, 'railway.json'))) {
   const railwayJson = require('./railway.json');
-  if (railwayJson.deploy && railwayJson.deploy.startCommand === 'npm run railway') {
+  if (railwayJson.build && railwayJson.build.buildCommand.includes('node build-for-railway.js')) {
+    console.log('✓ railway.json contains correct buildCommand');
+  } else {
+    console.error('✗ railway.json does not contain correct buildCommand');
+    allFilesExist = false;
+  }
+  
+  if (railwayJson.deploy && railwayJson.deploy.startCommand === 'node server.js') {
     console.log('✓ railway.json contains correct startCommand');
   } else {
     console.error('✗ railway.json does not contain correct startCommand');

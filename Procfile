@@ -1,1 +1,1 @@
-web: npm run railway 
+web: node server.js 
